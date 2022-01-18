@@ -8,7 +8,13 @@ Created on Thu Aug 19 15:02:35 2021
 
 import numpy as np
 from tqdm import tqdm
-from scipy.stats import genpareto, anderson, anderson_ksamp
+from sklearn.neighbors import NearestNeighbors
+import warnings
+from nolitsa.delay import dmi
+from nolitsa.dimension import afn
+import time
+from fitter import Fitter
+from scipy.stats.mstats import mquantiles
 
 def embed_1dim(x,tau=1,m=2):
 	# Check inputs shape
@@ -124,9 +130,6 @@ def embed(X, tau=[1], m=[2], t=None):
 #########################
 ### LYAPUNOV SPECTRUM ###
 #########################
-from sklearn.neighbors import NearestNeighbors
-import warnings
-
 def _calc_tangent_map(X, t_step=1, n_neighbors=20, \
 					  eps_over_L0=0.05, eps_over_L_fact=1.2, verbose=False):
 	"""
@@ -385,8 +388,6 @@ def _calc_autocorr_time(X):
 #####################################
 ### BEST TIME DELAY FOR EMBEDDING ###
 #####################################
-from nolitsa.delay import dmi
-
 def calc_tau_delay(X,maxtau=None):
 	_check_input_shape(X)
 	Nt, Nx = X.shape
@@ -408,8 +409,6 @@ def calc_tau_delay(X,maxtau=None):
 ################################
 ### BEST EMBEDDING DIMENSION ###
 ################################
-from nolitsa.dimension import afn
-
 def calc_dim_Cao1997(X, tau=np.arange(1,34,4), m=np.arange(1,21,1), \
 						E1_thresh=0.95, E2_thresh=0.95, mw=2, qw=3, \
 						window=10, flag_single_tau=False, parallel=True):
@@ -440,7 +439,6 @@ def calc_dim_Cao1997(X, tau=np.arange(1,34,4), m=np.arange(1,21,1), \
 			E2 = np.empty((Nobs,1,Nm-1))
 			mhat = np.zeros((Nobs,1))
 		if qw==None:
-			mw = 0
 			qw = _calc_autocorr_time(X)
 		tic = time.time()
 		print("")
@@ -451,16 +449,6 @@ def calc_dim_Cao1997(X, tau=np.arange(1,34,4), m=np.arange(1,21,1), \
 				for tautau in tau:
 					print("Scalar time series %d/%d, tau = %d: " %(ii+1,Nobs,tautau),end='')
 					tt+=1
-					#flag_afn = False
-					#while flag_afn==False:
-					#	try:
-					#		E[ii,tt,:],Es[ii,tt,:] = afn(X[:,ii], \
-					#				dim=m, tau=tautau, maxnum=mw*window+qw)
-					#		flag_afn = True
-					#	except:
-					#		mw+=30
-					#		print("afn failed.")
-					#		print("Increasing window to %d" %(mw))
 					try:
 						E[ii,tt,:],Es[ii,tt,:] = afn(X[:,ii], \
 									dim=m, tau=tautau, maxnum=None, \
@@ -485,15 +473,6 @@ def calc_dim_Cao1997(X, tau=np.arange(1,34,4), m=np.arange(1,21,1), \
 				tautau = tau[ii]
 				print("Scalar time series %d/%d, tau = %d: " %(ii+1,Nobs,tautau),end='')
 				tt = 0
-				#flag_afn = False
-				#while flag_afn==False:
-				#	try:
-				#		E[ii,tt,:],Es[ii,tt,:] = afn(X[:,ii], dim=m, tau=tautau, maxnum=mw*window+qw)
-				#		flag_afn = True
-				#	except:
-				#		mw+=30
-				#		print("afn failed.")
-				#		print("Increasing window to %d" %(mw))
 				try:
 					E[ii,tt,:],Es[ii,tt,:] = afn(X[:,ii], dim=m, tau=tautau, \
 								  maxnum=None, window=int(qw), parallel=parallel)
@@ -516,14 +495,6 @@ def calc_dim_Cao1997(X, tau=np.arange(1,34,4), m=np.arange(1,21,1), \
 ############################
 ### EXTREME VALUE THEORY ###
 ############################
-import pdb
-import time
-import matplotlib.pyplot as plt
-from fitter import Fitter
-from scipy.stats import probplot
-from scipy.stats.mstats import mquantiles
-
-
 def calc_dtheta_EVT(X, p=2, q0_thresh=0.98, dq_thresh=None, fit_distr=False, \
 					verbose=True):
 	"""
@@ -565,7 +536,6 @@ def calc_dtheta_EVT(X, p=2, q0_thresh=0.98, dq_thresh=None, fit_distr=False, \
 	"""
 	if verbose==True:
 		print("Calculating EVT: ")
-	#np.random.seed(42)
 	Nt,Nts = X.shape
 	d_EVT     = np.zeros([Nt,1])
 	theta_EVT = np.zeros([Nt,1])
@@ -623,7 +593,6 @@ def calc_dtheta_EVT(X, p=2, q0_thresh=0.98, dq_thresh=None, fit_distr=False, \
 						f.fit()
 						#f.summary()
 		
-						#pdb.set_trace()
 						if f._aic['expon']<f._aic['genpareto']:
 							flag_q = True
 							d_EVT[tt] = 1 / np.mean(g_over_q - q)
@@ -643,214 +612,3 @@ def calc_dtheta_EVT(X, p=2, q0_thresh=0.98, dq_thresh=None, fit_distr=False, \
 				
 
 	return d_EVT, theta_EVT, qs_thresh
-
-
-
-
-# def calc_dtheta_EVT(X, p=2, qs_thresh=[0.98],  alpha=0.01, r_thresh=0.95, r_thresh_perc=0.05):
-# 	np.random.seed(42)
-# 	Nt,Nts = X.shape
-# 	d_EVT = np.zeros([Nt,1])
-# 	theta_EVT = np.zeros([Nt,1])
-# 	s = np.ones([Nt,1])
-# 	r = np.ones([Nt,1])
-# 	#Nq = len(qs_thresh)
-# 	flag_GP = False
-# 	cc = -1
-# 	q_thresh = qs_thresh[0]
-# 	# Temporary ignore the "RuntimeWarning: divide by zero
-# 	# encountered in log"
-# 	with np.errstate(divide='ignore', invalid='ignore'):
-# # 		while flag_GP==False:
-# # 			cc+=1
-# # 			try:
-# # 				q_thresh = qs_thresh[cc]
-# # 			except:
-# # 				q_thresh+=(1-q_thresh)/2
-# # 			print('')
-# # 			print('q_thresh = %f' %(q_thresh))
-# # 			time.sleep(0.5)
-# 			for tt in tqdm(np.arange(Nt)):
-# 				#delta = np.linalg.norm(X[:,:] - X[tt,:], ord=p, axis=1)
-# 				delta = np.sum(np.abs(X[:,:] - X[tt,:])**p,axis=1)**(1/p)
-# 				
-# 				g = -np.log(delta)
-# 				#q = np.quantile(g,q_thresh,interpolation='linear')
-# 				q = mquantiles(g,q_thresh,alphap=0.5, betap=0.5)
-# 				
-# 				idx_g_over_q = np.argwhere(g > q)
-# 				T_tt = np.diff(idx_g_over_q,axis=0)
-# 				S_tt = T_tt - 1
-# 				N_c = len(S_tt[S_tt>0])
-# 				N   = len(T_tt)
-# 				
-# 				g_over_q = np.sort(g[g>q])
-# 				#g_over_q = g_over_q[0:-1]
-# 				g_over_q = g_over_q[np.isfinite(g_over_q)]
-# 				#g_over_q = g_over_q[0:-np.sum(g_over_q==np.inf)]
-# 				d_EVT[tt] = 1 / np.mean(g_over_q - q)
-# 				
-# 				# Più alto q possibile. Stima exp e Pareto di d_EVT.
-# 				# Confronta intervalli confidenza delle due stime
-# 				# Tieni massimo q per cui le due stime sono consistenti
-# 				f = Fitter(g_over_q, distributions=['expon','genpareto'])
-# 				f.fit()
-# 				f.summary()
-# # 				aa = probplot(g_over_q, \
-# # 						  dist='expon',sparams=f.fitted_param['expon'],\
-# # 						  plot=plt,fit=True,rvalue=True)
-# # 				plt.close('all')
-# # 				r[tt] = aa[1][2]
-# 				pdb.set_trace()
-# # 				_,_,s[tt] = anderson_ksamp([g_over_q,\
-# # 								genpareto.rvs(c=0,scale = 1/d_EVT[tt], \
-# # 								  size=g_over_q.shape[0])],midrank=False)
-# 	# 			A,B,S = anderson(g_over_q, dist='expon')
-# 	# 			if A>B[4]:
-# 	# 				s[tt] = 1
-# # 				if s[tt]<alpha:
-# #  					print('Null hypothesis: extremes follow a GP. Rejected at %f confidence level.' %(alpha))
-# #  					time.sleep(0.5)
-# #  					break
-# # 				if r[tt]<r_thresh:
-# # 					pdb.set_trace()
-# # 					print('r^2 goodness of fit on Q-Q plot less than %f' %(r_thresh))
-# # 					time.sleep(0.5)
-# # 					break
-# 				
-# 				qs = 1 - q_thresh
-# 				theta_EVT[tt] = (np.sum(qs * S_tt) + N + N_c - \
-# 				  np.sqrt((np.sum(qs * S_tt) + N + N_c)**2 - \
-# 		 		   8 * N_c * np.sum(qs * S_tt))) / (2 * np.sum(qs * S_tt))
-# 			#pdb.set_trace()
-# # 			if np.sum(s<alpha)>0:
-# # 				flag_GP=False
-# # 			if np.sum(r<r_thresh)/Nt>r_thresh_perc:
-# # 				pdb.set_trace()
-# # 				flag_GP=False
-# # 			else:
-# # 				pdb.set_trace()
-# # 				flag_GP=True
-# 	return d_EVT, theta_EVT, r, q_thresh
-
-
-
-
-#     logdista=-log(pdist2(x(j,:),x));
-#     thresh=quantile(logdista, quanti);
-# 	logextr=logdista(logdista>thresh);
-#     logextr=logextr(isfinite(logextr));
-# 	D1(j,1)=1./mean(logextr-thresh);
-
-# def calc_H_EVT(self):
-# thetamin = np.min(self.theta_EVT)
-# thetamax = np.max(self.theta_EVT)
-# thetamean = np.mean(self.theta_EVT)
-# if thetamax<1:
-# 	Hmax = -np.log(1-thetamax)
-# else:
-# 	Hmax = np.inf
-# Hmean = -np.log(1-thetamean)
-# Hmin = -np.log(1-thetamin)
-# self.H_EVT = [Hmin, Hmean, Hmax]
-
-# return self
-
-# def calc_tstar_EVT(self):
-# self.tstar_EVT = \
-# 	[1/self.H_EVT[2], 1/self.H_EVT[1], 1/self.H_EVT[0]]
-# return self
-
-# def calc_EVT(self, X, p=2, q_thresh=0.98, verbose=False):
-# if verbose==True:
-# 	tic = time.time()
-# 	print(" ")
-# 	print("Characterizing time series via EVT:")
-# self = self.calc_dtheta_EVT(X, p=p, q_thresh=q_thresh, verbose=verbose)
-# self = self.calc_H_EVT()
-# self = self.calc_tstar_EVT()
-# if verbose==True:
-# 	print("%.2f s" %(time.time()-tic))
-# return self
-
-# def calc_extremalindex_Suaveges(self,psi,q_thresh=0.98):
-# psi = self._check_input_shape(psi)
-# if psi.shape[1]>1:
-# 	raise ValueError("The negative log-distances should be a 1-dim array.")
-# u = np.quantile(psi[:,0],q_thresh,interpolation='linear')
-# q = 1-q_thresh
-# Li = np.argwhere(psi[:,0]>u)
-# Ti = np.diff(Li, axis=0)
-# Si = Ti-1
-# Nc = len(Si[Si>0])
-# N = len(Ti)
-# theta = ( np.sum(q*Si) + N + Nc - \
-#    np.sqrt( (np.sum(q*Si) + N + Nc)**2 - 8*Nc*np.sum(q*Si)) ) / \
-#    (2*np.sum(q*Si))
-# return theta
-
-# def calc_dtheta_EVT_blockmaxima(self,X,p=2,q_thresh=0.98,Ndiv=2,Lb=10,multivariate=True,verbose=False):
-# X = self._check_input_shape(X)
-# Nt,Nts = X.shape
-# if Nts==1:
-# 	if verbose==True:
-# 		print("The dataset is univariate.")
-# 		print("   Setting multivariate to False.")
-# 		print("   The distance will be calculate in L1 norm.")
-# 	multivariate = False
-
-# Nt_pairs = int(np.floor(Nt/Ndiv))
-# #Nt_pairs = Ndiv*Nt_cut
-# if Nt_pairs<Lb:
-# 	raise ValueError("The trajectories length is too short given the specified blocks length Lb.")
-# Nb = int(np.floor(Nt_pairs/Lb))
-# Nt_pairs = Nb*Lb
-# pairs = list(combinations(range(Ndiv), 2))
-# l = len(pairs)
-# if verbose==True:
-# 	print(" ")
-# 	print("Total number of trajectory pairs: %d" %(l))
-# 	print("Total number of blocks per trajectory pair: %d" %(Nb))
-# # Use all the time series at once
-# if multivariate==True:
-# 	self.D2_GEV = np.zeros((1,l))
-# 	self.DEI = np.zeros((1,l))
-# 	x = np.zeros((Nt_pairs,Nts,2))
-# 	for ll in np.arange(l):
-# 		ind1 = pairs[ll][0]
-# 		ind2 = pairs[ll][1]
-# 		# Pair of trajectories for all observables
-# 		x[:,:,0] = X[ind1*Nt_pairs:(ind1+1)*Nt_pairs,:]
-# 		x[:,:,1] = X[ind2*Nt_pairs:(ind2+1)*Nt_pairs,:]
-# 		psi = -np.log(np.linalg.norm(x[:,:,0]-x[:,:,1],ord=p,axis=1))
-# 		#pdb.set_trace()
-# 		logextr = np.ones([Nb,1])
-# 		for bb in np.arange(Nb):
-# 			logextr[bb] = np.max(psi[bb*Lb:(bb+1)*Lb])
-# 		sh, loc, sc = gev.fit(logextr)
-# 		self.D2_GEV[0,ll] = 1/sc
-# 		#pdb.set_trace()
-# 		self.DEI[0,ll] = self.calc_extremalindex_Suaveges(psi=psi,q_thresh=q_thresh)
-# # Perform the analysis for each time series, which is treated as a
-# # different observable
-# elif multivariate==False:
-# 	self.D2_GEV = np.zeros((Nts,l))
-# 	self.DEI = np.zeros((Nts,l))
-# 	for ii in np.arange(Nts):
-# 		# For each pair:
-# 		x = np.zeros((Nt_pairs,2))
-# 		for ll in np.arange(l):
-# 			ind1 = pairs[ll][0]
-# 			ind2 = pairs[ll][1]
-# 			# Pair of trajectories for observable ii
-# 			x[:,0] = X[ind1*Nt_pairs:(ind1+1)*Nt_pairs,ii]
-# 			x[:,1] = X[ind2*Nt_pairs:(ind2+1)*Nt_pairs,ii]
-# 			psi = -np.log(np.abs(np.diff(x)))[:,0]
-# 			logextr = np.ones([Nb,1])
-# 			for bb in np.arange(Nb):
-# 				logextr[bb] = np.max(psi[bb*Lb:(bb+1)*Lb])
-# 			sh, loc, sc = gev.fit(logextr)
-# 			self.D2_GEV[ii,ll] = 1/sc
-# 			#pdb.set_trace()
-# 			self.DEI[ii,ll] = self.calc_extremalindex_Suaveges(psi=psi,q_thresh=q_thresh)
-# return self
