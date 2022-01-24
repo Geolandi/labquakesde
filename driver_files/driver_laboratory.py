@@ -13,21 +13,25 @@ e-mail: adriano.gualandi@ingv.it
 
 #%% CLEAR WORKSPACE
 from IPython import get_ipython
-get_ipython().magic('reset -sf')
+# get_ipython().magic('reset -sf')
 
 #%% IMPORT STANDARD MODULES
 import __includes__
 
 import os
-import matplotlib.pyplot as plt
+import pdb
 import time
-from utils.load_utils import import_data
-from utils.dynsys_utils import calc_dtheta_EVT, embed, calc_lyap_spectrum, calc_dim_Cao1997, _calc_tangent_map
-from utils.param_utils import set_param
-from utils.save_utils import save_pickle
 import numpy as np
 from scipy.signal import find_peaks
-import pdb
+import matplotlib.pyplot as plt
+from utils.load_utils import import_data
+from utils.param_utils import set_param
+from utils.save_utils import save_pickle
+from utils.dynsys_utils import \
+	calc_dtheta_EVT, \
+	embed, calc_lyap_spectrum, \
+	calc_dim_Cao1997, \
+	_calc_tangent_map
 
 plt.close('all')
 tic_begin = time.time()
