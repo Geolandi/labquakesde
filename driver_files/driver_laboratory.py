@@ -55,8 +55,8 @@ case_studies = ['labquakes/MeleVeeduetal2020/b724',\
 				'labquakes/MeleVeeduetal2020/b725',\
 				'labquakes/MeleVeeduetal2020/b727',\
 				'labquakes/MeleVeeduetal2020/i417']
-sigman = [13.6, 14.0, 14.4, 15.0, 15.4, 16.4, 17.0, 17.4, 18.0, 20.0, 22.0, \
-		  23.0, 24.0, 25.0]
+sigman = [13.6, 14.0, 14.4, 15.0, 15.4, 16.4, 17.0, \
+		  17.4, 18.0, 20.0, 22.0, 23.0, 24.0, 25.0]
 
 #%% SET FLAGS
 flag_save         = True
