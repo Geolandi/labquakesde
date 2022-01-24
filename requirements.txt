@@ -7,7 +7,4 @@ sklearn=0.24.2
 fitter
 spyder==5.1.5
 git+https://github.com/manu-mannattil/nolitsa.git
-slycot==0.4.0
-control==0.9.0
-pysindy==1.4.3
 csaps==1.0.4
