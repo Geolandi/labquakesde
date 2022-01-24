@@ -2,9 +2,7 @@ numpy==1.20.3
 scipy=1.6.3
 matplotlib==3.4.3
 tqdm==4.62.2
-pydmd==0.3.3
 sklearn=0.24.2
 fitter
-spyder==5.1.5
 git+https://github.com/manu-mannattil/nolitsa.git
 csaps==1.0.4
