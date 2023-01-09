@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Oct 22 17:10:52 2021
+Created on Fri Aug  5 18:58:19 2022
 
 @author: vinco
 """
@@ -16,7 +16,8 @@ import __includes__
 import os
 import matplotlib.pyplot as plt
 import time
-from utils.dynsys_utils import calc_dtheta_EVT, embed, calc_lyap_spectrum, calc_dim_Cao1997, _calc_tangent_map
+from utils.dynsys_utils import calc_dtheta_EVT, embed, calc_lyap_spectrum, \
+	calc_dim_Cao1997, _calc_tangent_map
 from utils.save_utils import save_pickle
 import numpy as np
 from scipy.signal import find_peaks
@@ -30,19 +31,27 @@ dirs = {'main' : os.getcwd(),
 		}
 			
 #%% SELECT CASE STUDY AND SET UP DIRECTORIES
-#diff_eq_type = 'ODE'
-diff_eq_type = 'SDE'
+#diff_eq_type = 'param4'
+#diff_eq_type = 'param5'
+#diff_eq_type = 'param6'
+diff_eq_type = 'param7'
 
 #Anoise = 0 # Observational noise amplitude in Pa
 Anoise = 4e3 # Observational noise amplitude in Pa
 
 case_studies = ['synthetic/'+diff_eq_type+'/b724', \
-				'synthetic/'+diff_eq_type+'/b722','synthetic/'+diff_eq_type+'/b696',\
-				'synthetic/'+diff_eq_type+'/b726','synthetic/'+diff_eq_type+'/b694',\
-				'synthetic/'+diff_eq_type+'/b697','synthetic/'+diff_eq_type+'/b693',\
-				'synthetic/'+diff_eq_type+'/b698','synthetic/'+diff_eq_type+'/b695',\
-				'synthetic/'+diff_eq_type+'/b728','synthetic/'+diff_eq_type+'/b721',\
-				'synthetic/'+diff_eq_type+'/b725','synthetic/'+diff_eq_type+'/b727',\
+				'synthetic/'+diff_eq_type+'/b722', \
+				'synthetic/'+diff_eq_type+'/b696', \
+				'synthetic/'+diff_eq_type+'/b726', \
+				'synthetic/'+diff_eq_type+'/b694', \
+				'synthetic/'+diff_eq_type+'/b697', \
+				'synthetic/'+diff_eq_type+'/b693', \
+				'synthetic/'+diff_eq_type+'/b698', \
+				'synthetic/'+diff_eq_type+'/b695', \
+				'synthetic/'+diff_eq_type+'/b728', \
+				'synthetic/'+diff_eq_type+'/b721', \
+				'synthetic/'+diff_eq_type+'/b725', \
+				'synthetic/'+diff_eq_type+'/b727', \
 				'synthetic/'+diff_eq_type+'/i417']
 
 sigman = [0]*len(case_studies)
@@ -55,7 +64,6 @@ flag_calc_EVT     = True
 flag_calc_LEs     = True
 
 #%% SET PARAMETERS
-cc = -1
 Ncases = len(case_studies)
 
 v0 = 10e-6
@@ -72,9 +80,7 @@ min_dist = [2,3,4,5,6,7,8,9,10,11,16,21]
 Nmin_dist = len(min_dist)
 
 tau_delay = []
-tt=-1
-for mm in min_dist:
-	tt+=1
+for tt,mm in enumerate(min_dist):
 	tau_delay.append(min_dist[tt]-1)
 Ntau_delay = len(tau_delay)
 
@@ -96,15 +102,15 @@ mmax = 20
 E1_thresh = 0.9
 E2_thresh = 0.9
 
+print("")
 D1 = np.zeros((Ncases,Nm,Nmin_dist))
-for case_study in case_studies:
+for cc,case_study in enumerate(case_studies):
+	
 	exp_name = case_study[-5:]
 	dirs['pickles'] = dirs['main']+'/../scenarios/'+case_study+'/pickles/'
 	dirs['figures'] = dirs['main']+'/../scenarios/'+case_study+'/figures/'
-	print("")
-	print("")
 	print(case_study)
-	cc+=1
+	
 	#% LOAD DATA
 	if flag_load_data==True:
 		sol_t   = np.loadtxt(dirs['data']+case_study+'/sol_t.txt')
@@ -128,7 +134,8 @@ for case_study in case_studies:
 		Nt = tobs.shape[0]
 		vobs = v0*np.exp(sol_u[sol_t>Tmin,0])
 		ShearStressobs = np.zeros((Nt,))
-		ShearStressobs = (tau0 + a*sigman0*sol_u[sol_t>Tmin,1] + Anoise*np.random.randn(Nt))/1e6
+		ShearStressobs = (tau0 + a*sigman0*sol_u[sol_t>Tmin,1] + \
+					Anoise*np.random.randn(Nt))/1e6
 		NormStressobs = sigman[cc] + (sigman[cc]*a/mu0)*sol_u[sol_t>Tmin,2]
 		
 		dtobs = tobs[1]-tobs[0]
@@ -145,7 +152,8 @@ for case_study in case_studies:
 			X[:,nn] = csaps(tobs, Xobs[:,nn], tobs, smooth=smoothes[nn])
 		X_norm = np.zeros((Nt,Nx))
 		for ii in np.arange(Nx):
-			X_norm[:,ii] = (X[:,ii]-np.min(X[:,ii])) / (np.max(X[:,ii])-np.min(X[:,ii]))
+			X_norm[:,ii] = (X[:,ii]-np.min(X[:,ii])) / \
+				(np.max(X[:,ii])-np.min(X[:,ii]))
 	
 		# LYAPUNOV SPECTRUM
 		if flag_calc_LEs==True:
@@ -162,15 +170,16 @@ for case_study in case_studies:
 				mhat_tmp = [[np.nan]]
 				while np.isnan(mhat_tmp[0][0]):
 					tau_delay+=1
-					mhat_tmp, E1, E2 = calc_dim_Cao1997(X=X_norm, tau=[tau_delay], \
-			 					m=np.arange(1,mmax+1,1),E1_thresh=E1_thresh, \
-			 					E2_thresh=E2_thresh, qw=None, \
-			 					flag_single_tau=False, parallel=False)
+					mhat_tmp, E1, E2 = calc_dim_Cao1997(X=X_norm,
+								 tau=[tau_delay], m=np.arange(1,mmax+1,1),
+								 E1_thresh=E1_thresh, E2_thresh=E2_thresh,
+								 qw=None, flag_single_tau=False,
+								 parallel=False)
 				
-				H, tH = embed(X_norm, tau=[tau_delay], \
+				H, tH = embed(X_norm, tau=[tau_delay],
 									 m=[int(mhat_tmp[0][0])], t=tobs)
 				LEs_tmp, LEs_mean_tmp, LEs_std_tmp, eps_over_L_tmp = \
-					calc_lyap_spectrum(H, sampling=LEs_sampling, \
+					calc_lyap_spectrum(H, sampling=LEs_sampling,
 						   eps_over_L0=eps_over_L0, n_neighbors=20)
 				mhat.append(mhat_tmp)
 				LEs.append(LEs_tmp)
@@ -179,17 +188,19 @@ for case_study in case_studies:
 				eps_over_L.append(eps_over_L_tmp)
 			else:
 				for tautau in np.arange(Ntau_delay):
-					mhat_tmp, E1, E2 = calc_dim_Cao1997(X=X_norm, \
-								tau=[tau_delay[tautau]], m=np.arange(1,mmax+1,1), \
-								E1_thresh=E1_thresh, E2_thresh=E2_thresh, \
-								qw=None, flag_single_tau=True, parallel=False)
+					mhat_tmp, E1, E2 = calc_dim_Cao1997(X=X_norm,
+								tau=[tau_delay[tautau]],
+									m=np.arange(1,mmax+1,1),
+									E1_thresh=E1_thresh, E2_thresh=E2_thresh,
+									qw=None, flag_single_tau=True,
+									parallel=False)
 					mhat[tautau] = mhat_tmp[0][0]
 					if np.isnan(mhat_tmp[0][0]):
 						eps_over_L[tautau] = np.nan
 					else:
-						H, tH = embed(X_norm, tau=[tau_delay[tautau]], \
+						H, tH = embed(X_norm, tau=[tau_delay[tautau]],
 									 m=[int(mhat_tmp[0][0])], t=tobs)
-						_, eps_over_L[tautau] = _calc_tangent_map(H, \
+						_, eps_over_L[tautau] = _calc_tangent_map(H,
 										   n_neighbors=20, eps_over_L0=eps_over_L0)
 				# Define the best embedding parameters as those such that the
 				# tangent map for the calculation of the Lyapunov spectrum is
@@ -198,53 +209,47 @@ for case_study in case_studies:
 				tau_best = int(tau_delay[np.nanargmin(eps_over_L)])
 				mhat_best = int(mhat[np.nanargmin(eps_over_L)])
 				print("m = %d, tau = %d" %(mhat_best, tau_best))
-				H, tH = embed(X_norm, tau=[tau_best], \
+				H, tH = embed(X_norm, tau=[tau_best],
 									 m=[mhat_best], t=tobs)
 				LEs, LEs_mean, LEs_std, eps_over_L = \
-							calc_lyap_spectrum(H, sampling=LEs_sampling, \
+							calc_lyap_spectrum(H, sampling=LEs_sampling,
 										eps_over_L0=eps_over_L0, n_neighbors=20)
 				
-		dd = -1
 		NtHmax = 0
-		for mmin_dist in min_dist:
-			dd+=1
+		for dd,mmin_dist in enumerate(min_dist):
 			ind_peaks = find_peaks(X[:,0],distance=mmin_dist)[0]
 			
 			# EMBEDDING TO ESTIMATE MAXIMUM NtH
-			kk = -1
-			for mm in m_list:
+			for kk,mm in enumerate(m_list):
 				try:
-					kk+=1
-					H, tH = embed(X[ind_peaks,:], tau=[1], \
+					H, tH = embed(X[ind_peaks,:], tau=[1],
 								 m=[mm],t=tobs[ind_peaks])
 					NtHmax = np.max([NtHmax,tH.shape[0]])
 				except:
 					print('mm is too large: skipped')
 		
-		dd = -1
 		tH        = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		d1        = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		theta     = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		qs_thresh = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		q0_thresh = np.zeros((Nm,Nmin_dist))*np.nan
-		for mmin_dist in min_dist:
-			dd+=1
+		for dd,mmin_dist in enumerate(min_dist):
+			
 			ind_peaks = find_peaks(X[:,0],distance=mmin_dist)[0]
 			
 			# EVT CALCULATION
-			kk = -1
-			for mm in m_list:
+			for kk,mm in enumerate(m_list):
 				try:
-					kk+=1
 					H, tH_tmp = embed(X[ind_peaks,:], tau=[1], \
 								 m=[mm],t=tobs[ind_peaks])
 					NtH = tH_tmp.shape[0]
 					if flag_calc_EVT==True:
 						q0_thresh[kk,dd] = 1 - n_neighbors_min_EVT/NtH
 						d1_tmp,theta_tmp,qs_thresh_tmp = \
-									calc_dtheta_EVT(H, p=p_EVT, \
-							q0_thresh=q0_thresh[kk,dd], dq_thresh=dq_thresh_EVT,\
-							fit_distr=fit_distr)
+									calc_dtheta_EVT(H, p=p_EVT,
+													q0_thresh=q0_thresh[kk,dd],
+													dq_thresh=dq_thresh_EVT,
+													fit_distr=fit_distr)
 						
 						tH[kk,dd,:NtH]        = tH_tmp
 						d1[kk,dd,:NtH]        = d1_tmp[:,0]

@@ -19,7 +19,6 @@ from IPython import get_ipython
 import __includes__
 
 import os
-import pdb
 import time
 import numpy as np
 from scipy.signal import find_peaks
@@ -63,13 +62,8 @@ flag_save         = True
 flag_load_data    = True
 flag_calc_EVT     = True
 flag_calc_LEs     = True
-flag_load_results = True
-flag_load_EVT     = True
-flag_load_LEs     = True
-
 
 #%% SET PARAMETERS
-cc = -1
 Ncases = len(case_studies)
 
 # Embedding dimensions to test
@@ -104,13 +98,12 @@ E1_thresh = 0.9
 E2_thresh = 0.9
 
 D1 = np.zeros((Ncases,Nm,Nmin_dist))
-for case_study in case_studies:
+for cc,case_study in enumerate(case_studies):
 	dirs['pickles'] = dirs['main']+'/../scenarios/'+case_study+'/pickles/'
 	dirs['figures'] = dirs['main']+'/../scenarios/'+case_study+'/figures/'
 	print("")
 	print("")
 	print(case_study)
-	cc+=1
 	#% LOAD DATA
 	exp_name = case_study[-4:]
 	filename = dirs['data']+case_study+'/'+exp_name+'.txt'
@@ -194,7 +187,7 @@ for case_study in case_studies:
 				# Define the best embedding parameters as those such that the
 				# tangent map for the calculation of the Lyapunov spectrum is
 				# calculated using the smallest radius in order to have the
-				# required number of neighbros
+				# required number of neighbors
 				tau_best = int(tau_delay[np.nanargmin(eps_over_L)])
 				mhat_best = int(mhat[np.nanargmin(eps_over_L)])
 				print("m = %d, tau = %d" %(mhat_best, tau_best))
@@ -204,10 +197,8 @@ for case_study in case_studies:
 							calc_lyap_spectrum(H, sampling=LEs_sampling, \
 										eps_over_L0=eps_over_L0, n_neighbors=20)
 				
-		dd = -1
 		NtHmax = 0
-		for mmin_dist in min_dist:
-			dd+=1
+		for dd,mmin_dist in enumerate(min_dist):
 			ind_peaks = find_peaks(X[:,0],distance=mmin_dist)[0]
 			
 			# EMBEDDING TO ESTIMATE MAXIMUM NtH
@@ -218,22 +209,18 @@ for case_study in case_studies:
 							 m=[mm],t=tobs[ind_peaks])
 				NtHmax = np.max([NtHmax,tH.shape[0]])
 		
-		dd = -1
 		tH        = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		d1        = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		theta     = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		qs_thresh = np.zeros((Nm,Nmin_dist,NtHmax))*np.nan
 		q0_thresh = np.zeros((Nm,Nmin_dist))*np.nan
-		for mmin_dist in min_dist:
-			dd+=1
+		for dd,mmin_dist in enumerate(min_dist):
 			ind_peaks = find_peaks(X[:,0],distance=mmin_dist)[0]
 			
 			
 			# EVT CALCULATION
-			kk = -1
-			for mm in m_list:
+			for kk,mm in enumerate(m_list):
 				try:
-					kk+=1
 					H, tH_tmp = embed(X[ind_peaks,:], tau=[1], \
 								 m=[mm],t=tobs[ind_peaks])
 					NtH = tH_tmp.shape[0]

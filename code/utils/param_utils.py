@@ -20,7 +20,7 @@ def set_param(case_study):
 	elif case_study=='labquakes/MeleVeeduetal2020/b694':
 		parameters = {
 				't0' : 6330.0,
-				'tend' : 6550.0,
+				'tend' : 6530.0,
 				'Nheaders' : 2,
 				'var4peaks' : 'ShearStress',
 				'peaks_dist' : 300,
